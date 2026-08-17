@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Periodic Table Master 🧪</title>
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --accent: #38bdf8;
+      --text: #f8fafc;
+      --border: #334155;
+      --heart-color: #ef4444;
+      --gold: #f59e0b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text); padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+
+    h1 { margin-bottom: 10px; color: var(--accent); font-size: 1.8rem; text-align: center; }
+
+    /* Login Modal Overlay */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(15, 23, 42, 0.95);
+      display: flex; justify-content: center; align-items: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: var(--card-bg); padding: 30px; border-radius: 12px;
+      border: 2px solid var(--accent); text-align: center; max-width: 400px; width: 90%;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .modal-content h2 { margin-bottom: 15px; color: var(--accent); }
+    .modal-content input {
+      width: 100%; padding: 12px; border-radius: 6px; border: 1px solid var(--border);
+      background: #0f172a; color: #fff; margin-bottom: 15px; font-size: 1rem; text-align: center;
+    }
+    .modal-content button {
+      width: 100%; background: var(--accent); color: #000; border: none;
+      padding: 12px; border-radius: 6px; font-weight: bold; font-size: 1rem; cursor: pointer;
+    }
+
+    /* Top Bar & Stats */
+    .user-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      width: 100%; max-width: 1200px; margin-bottom: 15px; background: var(--card-bg);
+      padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border);
+    }
+    .player-name-display { font-weight: bold; color: var(--accent); }
+
+    /* Navigation Tabs */
+    .tabs { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; justify-content: center; }
+    .tab-btn { background: var(--card-bg); border: 1px solid var(--border); color: var(--text); padding: 10px 18px; border-radius: 8px; cursor: pointer; transition: 0.2s; font-weight: 600; }
+    .tab-btn.active { background: var(--accent); color: #000; }
+
+    /* Status Bar (Hearts, Timer, Score) */
+    .status-bar {
+      display: flex; justify-content: space-around; align-items: center;
+      width: 100%; max-width: 1200px; background: #0f172a; border: 1px solid var(--border);
+      padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 1.1rem; font-weight: bold;
+    }
+    .hearts { color: var(--heart-color); font-size: 1.3rem; letter-spacing: 2px; }
+    .timer { color: var(--gold); }
+
+    /* Game Containers */
+    .game-mode { display: none; width: 100%; max-width: 1200px; }
+    .game-mode.active { display: flex; flex-direction: column; align-items: center; }
+
+    /* Mode 1: Drag & Drop Grid */
+    .deck-container {
+      display: flex; gap: 10px; margin-bottom: 15px; min-height: 65px; padding: 10px;
+      background: var(--card-bg); border-radius: 8px; width: 100%; justify-content: center; flex-wrap: wrap;
+    }
+    .element-card {
+      width: 48px; height: 48px; background: var(--accent); color: #000; font-weight: bold;
+      display: flex; align-items: center; justify-content: center; border-radius: 6px; cursor: grab;
+      font-size: 1rem; user-select: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    }
+    
+    .periodic-table {
+      display: grid; grid-template-columns: repeat(18, 1fr); grid-template-rows: repeat(10, 1fr);
+      gap: 3px; width: 100%; overflow-x: auto; padding: 10px; background: var(--card-bg); border-radius: 8px;
+    }
+    .slot {
+      width: 100%; aspect-ratio: 1; border: 1px dashed var(--border); border-radius: 4px;
+      display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; transition: 0.2s;
+    }
+    .slot.wrong { background: #ef4444 !important; animation: shake 0.3s; }
+
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      75% { transform: translateX(4px); }
+      100% { transform: translateX(0); }
+    }
+    
+    /* Category Colors */
+    .slot.correct.nonmetal { background-color: #22c55e; color: #000; }
+    .slot.correct.noble { background-color: #a855f7; color: #000; }
+    .slot.correct.alkali { background-color: #f97316; color: #000; }
+    .slot.correct.alkaline { background-color: #eab308; color: #000; }
+    .slot.correct.metalloid { background-color: #06b6d4; color: #000; }
+    .slot.correct.halogen { background-color: #ec4899; color: #000; }
+    .slot.correct.transition { background-color: #3b82f6; color: #fff; }
+    .slot.correct.post-transition { background-color: #64748b; color: #fff; }
+    .slot.correct.lanthanide { background-color: #14b8a6; color: #000; }
+    .slot.correct.actinide { background-color: #f43f5e; color: #fff; }
+
+    /* Panel UI */
+    .panel {
+      background: var(--card-bg); padding: 25px; border-radius: 12px; border: 1px solid var(--border);
+      width: 100%; max-width: 500px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .panel h2 { margin-bottom: 15px; color: var(--accent); }
+    .panel input {
+      width: 80%; padding: 12px; border-radius: 6px; border: 1px solid var(--border);
+      background: #0f172a; color: #fff; margin: 10px 0; text-align: center; font-size: 1.1rem;
+    }
+    .panel button {
+      background: var(--accent); color: #000; border: none; padding: 10px 20px;
+      border-radius: 6px; font-weight: bold; cursor: pointer; margin: 5px; font-size: 1rem;
+    }
+    .hint-box { text-align: left; background: #0f172a; padding: 15px; border-radius: 6px; margin: 15px 0; line-height: 1.6; }
+    .feedback { margin-top: 15px; font-weight: bold; font-size: 1.1rem; min-height: 1.5em; }
+
+    /* Leaderboard Table */
+    .leaderboard-table {
+      width: 100%; border-collapse: collapse; margin-top: 15px; text-align: left;
+    }
+    .leaderboard-table th, .leaderboard-table td {
+      padding: 10px; border-bottom: 1px solid var(--border);
+    }
+    .leaderboard-table th { color: var(--accent); }
+    .leaderboard-table tr:nth-child(1) td { color: var(--gold); font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <!-- Name Input Modal -->
+  <div class="modal-overlay" id="name-modal">
+    <div class="modal-content">
+      <h2>ยินดีต้อนรับสู่เกมตารางธาตุ 🧪</h2>
+      <p style="margin-bottom: 15px; color: #94a3b8;">กรุณาใส่ชื่อของคุณเพื่อเริ่มบันทึกสถิติ</p>
+      <input type="text" id="player-name-input" placeholder="พิมพ์ชื่อผู้เล่น..." maxlength="15">
+      <button onclick="savePlayerName()">เริ่มเล่นเกม!</button>
+    </div>
+  </div>
+
+  <h1>Periodic Table Master 🧪</h1>
+
+  <!-- Top User Info Bar -->
+  <div class="user-bar">
+    <div>ผู้เล่น: <span class="player-name-display" id="player-name-tag">-[ยังไม่ได้ระบุ]-</span></div>
+    <button onclick="changeName()" style="background:transparent; border:1px solid var(--accent); color:var(--accent); padding:4px 8px; border-radius:4px; cursor:pointer;">เปลี่ยนชื่อ</button>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchMode('drag')">1. ลากวาง 118 ธาตุ</button>
+    <button class="tab-btn" onclick="switchMode('electron')">2. จัดเรียงอิเล็กตรอน</button>
+    <button class="tab-btn" onclick="switchMode('detective')">3. สืบจากคำใบ้</button>
+    <button class="tab-btn" onclick="switchMode('leaderboard')" style="background:#334155;">🏆 ตารางสถิติ</button>
+  </div>
+
+  <!-- Common Status Bar -->
+  <div class="status-bar" id="game-status-bar">
+    <div>หัวใจ: <span class="hearts" id="hp-display">❤️❤️❤️❤️❤️</span></div>
+    <div>เวลา: <span class="timer" id="timer-display">00:00</span></div>
+    <div id="score-box" style="display:none;">ความคืบหน้า: <span id="progress-display">0</span>/118</div>
+  </div>
+
+  <!-- Mode 1: Drag and Drop -->
+  <div id="mode-drag" class="game-mode active">
+    <div class="deck-container" id="card-deck"></div>
+    <div class="periodic-table" id="table-grid"></div>
+  </div>
+
+  <!-- Mode 2: Electron Shell -->
+  <div id="mode-electron" class="game-mode">
+    <div class="panel">
+      <h2>จัดเรียงอิเล็กตรอน (ทำเวลา & สะสมชีวิต)</h2>
+      <p id="electron-target" style="font-size: 1.3rem; margin: 10px 0; color: var(--accent); font-weight:bold;"></p>
+      <p>กรอกจำนวน e- แต่ละชั้น (คั่นด้วย ,)</p>
+      <input type="text" id="electron-input" placeholder="เช่น 2,8,1" autocomplete="off">
+      <br>
+      <button onclick="checkElectron()">ตรวจคำตอบ</button>
+      <div id="electron-feedback" class="feedback"></div>
+    </div>
+  </div>
+
+  <!-- Mode 3: Detective -->
+  <div id="mode-detective" class="game-mode">
+    <div class="panel">
+      <h2>สืบหาธาตุปริศนา 🔍</h2>
+      <div class="hint-box" id="detective-hints"></div>
+      <input type="text" id="detective-input" placeholder="พิมพ์สัญลักษณ์ธาตุ (เช่น Na, Fe)" autocomplete="off">
+      <br>
+      <button onclick="checkDetective()">ทายผล</button>
+      <button onclick="startDetectiveMode()" style="background:#64748b; color:#fff;">เปลี่ยนข้อ</button>
+      <div id="detective-feedback" class="feedback"></div>
+    </div>
+  </div>
+
+  <!-- Leaderboard View -->
+  <div id="mode-leaderboard" class="game-mode">
+    <div class="panel" style="max-width: 600px;">
+      <h2>🏆 สถิติการจัดตารางธาตุเร็วที่สุด</h2>
+      <table class="leaderboard-table">
+        <thead>
+          <tr>
+            <th>อันดับ</th>
+            <th>ชื่อผู้เล่น</th>
+            <th>เวลาที่ใช้</th>
+            <th>วันที่</th>
+          </tr>
+        </thead>
+        <tbody id="leaderboard-body">
+          <!-- Leaderboard Rows Inserted Here -->
+        </tbody>
+      </table>
+      <button onclick="clearLeaderboard()" style="margin-top:20px; background:#ef4444; color:#fff;">ล้างสถิติทั้งหมด</button>
+    </div>
+  </div>
+
+  <script>
+    // ฐานข้อมูลธาตุ 118 ตัว
+    const elementsData = [
+      {"number":1,"symbol":"H","name":"Hydrogen","group":1,"period":1,"category":"nonmetal"},
+      {"number":2,"symbol":"He","name":"Helium","group":18,"period":1,"category":"noble"},
+      {"number":3,"symbol":"Li","name":"Lithium","group":1,"period":2,"category":"alkali"},
+      {"number":4,"symbol":"Be","name":"Beryllium","group":2,"period":2,"category":"alkaline"},
+      {"number":5,"symbol":"B","name":"Boron","group":13,"period":2,"category":"metalloid"},
+      {"number":6,"symbol":"C","name":"Carbon","group":14,"period":2,"category":"nonmetal"},
+      {"number":7,"symbol":"N","name":"Nitrogen","group":15,"period":2,"category":"nonmetal"},
+      {"number":8,"symbol":"O","name":"Oxygen","group":16,"period":2,"category":"nonmetal"},
+      {"number":9,"symbol":"F","name":"Fluorine","group":17,"period":2,"category":"halogen"},
+      {"number":10,"symbol":"Ne","name":"Neon","group":18,"period":2,"category":"noble"},
+      {"number":11,"symbol":"Na","name":"Sodium","group":1,"period":3,"category":"alkali"},
+      {"number":12,"symbol":"Mg","name":"Magnesium","group":2,"period":3,"category":"alkaline"},
+      {"number":13,"symbol":"Al","name":"Aluminium","group":13,"period":3,"category":"post-transition"},
+      {"number":14,"symbol":"Si","name":"Silicon","group":14,"period":3,"category":"metalloid"},
+      {"number":15,"symbol":"P","name":"Phosphorus","group":15,"period":3,"category":"nonmetal"},
+      {"number":16,"symbol":"S","name":"Sulfur","group":16,"period":3,"category":"nonmetal"},
+      {"number":17,"symbol":"Cl","name":"Chlorine","group":17,"period":3,"category":"halogen"},
+      {"number":18,"symbol":"Ar","name":"Argon","group":18,"period":3,"category":"noble"},
+      {"number":19,"symbol":"K","name":"Potassium","group":1,"period":4,"category":"alkali"},
+      {"number":20,"symbol":"Ca","name":"Calcium","group":2,"period":4,"category":"alkaline"},
+      {"number":21,"symbol":"Sc","name":"Scandium","group":3,"period":4,"category":"transition"},
+      {"number":22,"symbol":"Ti","name":"Titanium","group":4,"period":4,"category":"transition"},
+      {"number":23,"symbol":"V","name":"Vanadium","group":5,"period":4,"category":"transition"},
+      {"number":24,"symbol":"Cr","name":"Chromium","group":6,"period":4,"category":"transition"},
+      {"number":25,"symbol":"Mn","name":"Manganese","group":7,"period":4,"category":"transition"},
+      {"number":26,"symbol":"Fe","name":"Iron","group":8,"period":4,"category":"transition"},
+      {"number":27,"symbol":"Co","name":"Cobalt","group":9,"period":4,"category":"transition"},
+      {"number":28,"symbol":"Ni","name":"Nickel","group":10,"period":4,"category":"transition"},
+      {"number":29,"symbol":"Cu","name":"Copper","group":11,"period":4,"category":"transition"},
+      {"number":30,"symbol":"Zn","name":"Zinc","group":12,"period":4,"category":"transition"},
+      {"number":31,"symbol":"Ga","name":"Gallium","group":13,"period":4,"category":"post-transition"},
+      {"number":32,"symbol":"Ge","name":"Germanium","group":14,"period":4,"category":"metalloid"},
+      {"number":33,"symbol":"As","name":"Arsenic","group":15,"period":4,"category":"metalloid"},
+      {"number":34,"symbol":"Se","name":"Selenium","group":16,"period":4,"category":"nonmetal"},
+      {"number":35,"symbol":"Br","name":"Bromine","group":17,"period":4,"category":"halogen"},
+      {"number":36,"symbol":"Kr","name":"Krypton","group":18,"period":4,"category":"noble"},
+      {"number":37,"symbol":"Rb","name":"Rubidium","group":1,"period":5,"category":"alkali"},
+      {"number":38,"symbol":"Sr","name":"Strontium","group":2,"period":5,"category":"alkaline"},
+      {"number":39,"symbol":"Y","name":"Yttrium","group":3,"period":5,"category":"transition"},
+      {"number":40,"symbol":"Zr","name":"Zirconium","group":4,"period":5,"category":"transition"},
+      {"number":41,"symbol":"Nb","name":"Niobium","group":5,"period":5,"category":"transition"},
+      {"number":42,"symbol":"Mo","name":"Molybdenum","group":6,"period":5,"category":"transition"},
+      {"number":43,"symbol":"Tc","name":"Technetium","group":7,"period":5,"category":"transition"},
+      {"number":44,"symbol":"Ru","name":"Ruthenium","group":8,"period":5,"category":"transition"},
+      {"number":45,"symbol":"Rh","name":"Rhodium","group":9,"period":5,"category":"transition"},
+      {"number":46,"symbol":"Pd","name":"Palladium","group":10,"period":5,"category":"transition"},
+      {"number":47,"symbol":"Ag","name":"Silver","group":11,"period":5,"category":"transition"},
+      {"number":48,"symbol":"Cd","name":"Cadmium","group":12,"period":5,"category":"transition"},
+      {"number":49,"symbol":"In","name":"Indium","group":13,"period":5,"category":"post-transition"},
+      {"number":50,"symbol":"Sn","name":"Tin","group":14,"period":5,"category":"post-transition"},
+      {"number":51,"symbol":"Sb","name":"Antimony","group":15,"period":5,"category":"metalloid"},
+      {"number":52,"symbol":"Te","name":"Tellurium","group":16,"period":5,"category":"metalloid"},
+      {"number":53,"symbol":"I","name":"Iodine","group":17,"period":5,"category":"halogen"},
+      {"number":54,"symbol":"Xe","name":"Xenon","group":18,"period":5,"category":"noble"},
+      {"number":55,"symbol":"Cs","name":"Caesium","group":1,"period":6,"category":"alkali"},
+      {"number":56,"symbol":"Ba","name":"Barium","group":2,"period":6,"category":"alkaline"},
+      {"number":57,"symbol":"La","name":"Lanthanum","group":3,"period":9,"category":"lanthanide"},
+      {"number":58,"symbol":"Ce","name":"Cerium","group":4,"period":9,"category":"lanthanide"},
+      {"number":59,"symbol":"Pr","name":"Praseodymium","group":5,"period":9,"category":"lanthanide"},
+      {"number":60,"symbol":"Nd","name":"Neodymium","group":6,"period":9,"category":"lanthanide"},
+      {"number":61,"symbol":"Pm","name":"Promethium","group":7,"period":9,"category":"lanthanide"},
+      {"number":62,"symbol":"Sm","name":"Samarium","group":8,"period":9,"category":"lanthanide"},
+      {"number":63,"symbol":"Eu","name":"Europium","group":9,"period":9,"category":"lanthanide"},
+      {"number":64,"symbol":"Gd","name":"Gadolinium","group":10,"period":9,"category":"lanthanide"},
+      {"number":65,"symbol":"Tb","name":"Terbium","group":11,"period":9,"category":"lanthanide"},
+      {"number":66,"symbol":"Dy","name":"Dysprosium","group":12,"period":9,"category":"lanthanide"},
+      {"number":67,"symbol":"Ho","name":"Holmium","group":13,"period":9,"category":"lanthanide"},
+      {"number":68,"symbol":"Er","name":"Erbium","group":14,"period":9,"category":"lanthanide"},
+      {"number":69,"symbol":"Tm","name":"Thulium","group":15,"period":9,"category":"lanthanide"},
+      {"number":70,"symbol":"Yb","name":"Ytterbium","group":16,"period":9,"category":"lanthanide"},
+      {"number":71,"symbol":"Lu","name":"Lutetium","group":17,"period":9,"category":"lanthanide"},
+      {"number":72,"symbol":"Hf","name":"Hafnium","group":4,"period":6,"category":"transition"},
+      {"number":73,"symbol":"Ta","name":"Tantalum","group":5,"period":6,"category":"transition"},
+      {"number":74,"symbol":"W","name":"Tungsten","group":6,"period":6,"category":"transition"},
+      {"number":75,"symbol":"Re","name":"Rhenium","group":7,"period":6,"category":"transition"},
+      {"number":76,"symbol":"Os","name":"Osmium","group":8,"period":6,"category":"transition"},
+      {"number":77,"symbol":"Ir","name":"Iridium","group":9,"period":6,"category":"transition"},
+      {"number":78,"symbol":"Pt","name":"Platinum","group":10,"period":6,"category":"transition"},
+      {"number":79,"symbol":"Au","name":"Gold","group":11,"period":6,"category":"transition"},
+      {"number":80,"symbol":"Hg","name":"Mercury","group":12,"period":6,"category":"transition"},
+      {"number":81,"symbol":"Tl","name":"Thallium","group":13,"period":6,"category":"post-transition"},
+      {"number":82,"symbol":"Pb","name":"Lead","group":14,"period":6,"category":"post-transition"},
+      {"number":83,"symbol":"Bi","name":"Bismuth","group":15,"period":6,"category":"post-transition"},
+      {"number":84,"symbol":"Po","name":"Polonium","group":16,"period":6,"category":"post-transition"},
+      {"number":85,"symbol":"At","name":"Astatine","group":17,"period":6,"category":"metalloid"},
+      {"number":86,"symbol":"Rn","name":"Radon","group":18,"period":6,"category":"noble"},
+      {"number":87,"symbol":"Fr","name":"Francium","group":1,"period":7,"category":"alkali"},
+      {"number":88,"symbol":"Ra","name":"Radium","group":2,"period":7,"category":"alkaline"},
+      {"number":89,"symbol":"Ac","name":"Actinium","group":3,"period":10,"category":"actinide"},
+      {"number":90,"symbol":"Th","name":"Thorium","group":4,"period":10,"category":"actinide"},
+      {"number":91,"symbol":"Pa","name":"Protactinium","group":5,"period":10,"category":"actinide"},
+      {"number":92,"symbol":"U","name":"Uranium","group":6,"period":10,"category":"actinide"},
+      {"number":93,"symbol":"Np","name":"Neptunium","group":7,"period":10,"category":"actinide"},
+      {"number":94,"symbol":"Pu","name":"Plutonium","group":8,"period":10,"category":"actinide"},
+      {"number":95,"symbol":"Am","name":"Americium","group":9,"period":10,"category":"actinide"},
+      {"number":96,"symbol":"Cm","name":"Curium","group":10,"period":10,"category":"actinide"},
+      {"number":97,"symbol":"Bk","name":"Berkelium","group":11,"period":10,"category":"actinide"},
+      {"number":98,"symbol":"Cf","name":"Californium","group":12,"period":10,"category":"actinide"},
+      {"number":99,"symbol":"Es","name":"Einsteinium","group":13,"period":10,"category":"actinide"},
+      {"number":100,"symbol":"Fm","name":"Fermium","group":14,"period":10,"category":"actinide"},
+      {"number":101,"symbol":"Md","name":"Mendelevium","group":15,"period":10,"category":"actinide"},
+      {"number":102,"symbol":"No","name":"Nobelium","group":16,"period":10,"category":"actinide"},
+      {"number":103,"symbol":"Lr","name":"Lawrencium","group":17,"period":10,"category":"actinide"},
+      {"number":104,"symbol":"Rf","name":"Rutherfordium","group":4,"period":7,"category":"transition"},
+      {"number":105,"symbol":"Db","name":"Dubnium","group":5,"period":7,"category":"transition"},
+      {"number":106,"symbol":"Sg","name":"Seaborgium","group":6,"period":7,"category":"transition"},
+      {"number":107,"symbol":"Bh","name":"Bohrium","group":7,"period":7,"category":"transition"},
+      {"number":108,"symbol":"Hs","name":"Hassium","group":8,"period":7,"category":"transition"},
+      {"number":109,"symbol":"Mt","name":"Meitnerium","group":9,"period":7,"category":"transition"},
+      {"number":110,"symbol":"Ds","name":"Darmstadtium","group":10,"period":7,"category":"transition"},
+      {"number":111,"symbol":"Rg","name":"Roentgenium","group":11,"period":7,"category":"transition"},
+      {"number":112,"symbol":"Cn","name":"Copernicium","group":12,"period":7,"category":"transition"},
+      {"number":113,"symbol":"Nh","name":"Nihonium","group":13,"period":7,"category":"post-transition"},
+      {"number":114,"symbol":"Fl","name":"Flerovium","group":14,"period":7,"category":"post-transition"},
+      {"number":115,"symbol":"Mc","name":"Moscovium","group":15,"period":7,"category":"post-transition"},
+      {"number":116,"symbol":"Lv","name":"Livermorium","group":16,"period":7,"category":"post-transition"},
+      {"number":117,"symbol":"Ts","name":"Tennessine","group":17,"period":7,"category":"halogen"},
+      {"number":118,"symbol":"Og","name":"Oganesson","group":18,"period":7,"category":"noble"}
+    ];
+
+    // Game Variables
+    let playerName = "";
+    let hearts = 5;
+    let timerInterval = null;
+    let secondsElapsed = 0;
+    let currentMode = 'drag';
+
+    let deck = [];
+    let placedCount = 0;
+
+    let currentElectronEl = null;
+    let currentDetectiveEl = null;
+
+    // --- Player Management ---
+    function checkPlayerName() {
+      const savedName = localStorage.getItem('periodic_player_name');
+      if (savedName) {
+        playerName = savedName;
+        document.getElementById('player-name-tag').innerText = playerName;
+        document.getElementById('name-modal').style.display = 'none';
+        initDragMode();
+      } else {
+        document.getElementById('name-modal').style.display = 'flex';
+      }
+    }
+
+    function savePlayerName() {
+      const input = document.getElementById('player-name-input').value.trim();
+      if (!input) return alert('กรุณาใส่ชื่อผู้เล่น');
+      playerName = input;
+      localStorage.setItem('periodic_player_name', playerName);
+      document.getElementById('player-name-tag').innerText = playerName;
+      document.getElementById('name-modal').style.display = 'none';
+      initDragMode();
+    }
+
+    function changeName() {
+      document.getElementById('name-modal').style.display = 'flex';
+    }
+
+    // --- Timer System ---
+    function startTimer() {
+      stopTimer();
+      secondsElapsed = 0;
+      updateTimerDisplay();
+      timerInterval = setInterval(() => {
+        secondsElapsed++;
+        updateTimerDisplay();
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+    }
+
+    function updateTimerDisplay() {
+      const mins = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
+      const secs = (secondsElapsed % 60).toString().padStart(2, '0');
+      document.getElementById('timer-display').innerText = `${mins}:${secs}`;
+    }
+
+    // --- Hearts System ---
+    function updateHeartsDisplay() {
+      let heartStr = '';
+      for (let i = 0; i < hearts; i++) heartStr += '❤️';
+      document.getElementById('hp-display').innerText = heartStr || '💀';
+    }
+
+    function deductHeart() {
+      hearts--;
+      updateHeartsDisplay();
+      if (hearts <= 0) {
+        stopTimer();
+        alert(`💀 Game Over! หัวใจของคุณหมดแล้ว
+ผู้เล่น: ${playerName}
+เวลาที่ใช้: ${document.getElementById('timer-display').innerText}`);
+        resetGame();
+      }
+    }
+
+    function addHeart() {
+      if (hearts < 10) {
+        hearts++;
+        updateHeartsDisplay();
+      }
+    }
+
+    function resetGame() {
+      hearts = 5;
+      updateHeartsDisplay();
+      if (currentMode === 'drag') initDragMode();
+      else if (currentMode === 'electron') startElectronMode();
+      else if (currentMode === 'detective') startDetectiveMode();
+    }
+
+    // --- Navigation & Mode Switch ---
+    function switchMode(mode) {
+      currentMode = mode;
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.game-mode').forEach(m => m.classList.remove('active'));
+
+      const statusBar = document.getElementById('game-status-bar');
+      const scoreBox = document.getElementById('score-box');
+
+      if (mode === 'drag') {
+        document.querySelectorAll('.tab-btn')[0].classList.add('active');
+        document.getElementById('mode-drag').classList.add('active');
+        statusBar.style.display = 'flex';
+        scoreBox.style.display = 'block';
+        initDragMode();
+      } else if (mode === 'electron') {
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        document.getElementById('mode-electron').classList.add('active');
+        statusBar.style.display = 'flex';
+        scoreBox.style.display = 'none';
+        startElectronMode();
+      } else if (mode === 'detective') {
+        document.querySelectorAll('.tab-btn')[2].classList.add('active');
+        document.getElementById('mode-detective').classList.add('active');
+        statusBar.style.display = 'flex';
+        scoreBox.style.display = 'none';
+        startDetectiveMode();
+      } else if (mode === 'leaderboard') {
+        document.querySelectorAll('.tab-btn')[3].classList.add('active');
+        document.getElementById('mode-leaderboard').classList.add('active');
+        statusBar.style.display = 'none';
+        stopTimer();
+        renderLeaderboard();
+      }
+    }
+
+    // --- Mode 1: Drag & Drop (Periodic Table) ---
+    function initDragMode() {
+      hearts = 5;
+      placedCount = 0;
+      updateHeartsDisplay();
+      document.getElementById('progress-display').innerText = placedCount;
+
+      const grid = document.getElementById('table-grid');
+      grid.innerHTML = '';
+
+      elementsData.forEach(el => {
+        const slot = document.createElement('div');
+        slot.className = 'slot';
+        slot.dataset.number = el.number;
+        slot.style.gridColumn = el.group;
+        slot.style.gridRow = el.period;
+
+        slot.addEventListener('dragover', e => e.preventDefault());
+        slot.addEventListener('drop', e => handleDrop(e, el));
+        grid.appendChild(slot);
+      });
+
+      deck = [...elementsData].sort(() => Math.random() - 0.5);
+      renderHand();
+      startTimer();
+    }
+
+    function renderHand() {
+      const container = document.getElementById('card-deck');
+      container.innerHTML = '';
+      deck.slice(0, 5).forEach(el => {
+        const card = document.createElement('div');
+        card.className = 'element-card';
+        card.draggable = true;
+        card.innerText = el.symbol;
+        card.addEventListener('dragstart', e => e.dataTransfer.setData('text', el.number));
+        container.appendChild(card);
+      });
+    }
+
+    function handleDrop(e, targetEl) {
+      e.preventDefault();
+      const draggedNum = parseInt(e.dataTransfer.getData('text'));
+      const slot = e.currentTarget;
+
+      if (draggedNum === targetEl.number) {
+        slot.innerText = targetEl.symbol;
+        slot.classList.add('correct', targetEl.category);
+        deck = deck.filter(item => item.number !== draggedNum);
+        placedCount++;
+        document.getElementById('progress-display').innerText = placedCount;
+
+        renderHand();
+
+        // เมื่อเรียงครบ 118 ธาตุ
+        if (placedCount === 118) {
+          stopTimer();
+          saveRecord(playerName, secondsElapsed);
+          alert(`🎉 ยินดีด้วยคุณ ${playerName}! คุณจัดเรียงครบ 118 ธาตุสำเร็จในเวลา ${document.getElementById('timer-display').innerText}`);
+          switchMode('leaderboard');
+        }
+      } else {
+        slot.classList.add('wrong');
+        deductHeart();
+        setTimeout(() => slot.classList.remove('wrong'), 800);
+      }
+    }
+
+    // --- Mode 2: Electron Shell Builder ---
+    function startElectronMode() {
+      hearts = 5;
+      updateHeartsDisplay();
+      startTimer();
+      nextElectronQuestion();
+    }
+
+    function nextElectronQuestion() {
+      currentElectronEl = elementsData[Math.floor(Math.random() * 36)]; // ธาตุ 36 ตัวแรก
+      document.getElementById('electron-target').innerText = `${currentElectronEl.name} (${currentElectronEl.symbol}) - เลขอะตอม ${currentElectronEl.number}`;
+      document.getElementById('electron-input').value = '';
+      document.getElementById('electron-feedback').innerText = '';
+    }
+
+    function checkElectron() {
+      const inputVal = document.getElementById('electron-input').value.trim();
+      if (!inputVal) return;
+
+      const inputArr = inputVal.split(',').map(n => parseInt(n.trim()));
+      
+      // คำนวณการจัดเรียง e- แบบหลัก
+      const shells = [2, 8, 18, 32];
+      let temp = currentElectronEl.number;
+      let correct = [];
+
+      for (let cap of shells) {
+        if (temp <= 0) break;
+        correct.push(Math.min(temp, cap));
+        temp -= cap;
+      }
+
+      const isRight = JSON.stringify(inputArr) === JSON.stringify(correct);
+      const fb = document.getElementById('electron-feedback');
+
+      if (isRight) {
+        fb.style.color = '#22c55e';
+        fb.innerText = 'ถูกต้อง! 🎉 (+1 หัวใจ)';
+        addHeart();
+        setTimeout(nextElectronQuestion, 1200);
+      } else {
+        fb.style.color = '#ef4444';
+        fb.innerText = `ผิด! (เฉลย: ${correct.join(',')}) (-1 หัวใจ)`;
+        deductHeart();
+      }
+    }
+
+    // --- Mode 3: Detective ---
+    function startDetectiveMode() {
+      hearts = 5;
+      updateHeartsDisplay();
+      startTimer();
+      
+      currentDetectiveEl = elementsData[Math.floor(Math.random() * elementsData.length)];
+      const hintBox = document.getElementById('detective-hints');
+      hintBox.innerHTML = `
+        📌 <b>คำใบ้ที่ 1:</b> อยู่ในหมู่ ${currentDetectiveEl.group}<br>
+        📌 <b>คำใบ้ที่ 2:</b> อยู่ในคาบ ${currentDetectiveEl.period}<br>
+        📌 <b>คำใบ้ที่ 3:</b> เป็นธาตุประเภท ${currentDetectiveEl.category}
+      `;
+      document.getElementById('detective-input').value = '';
+      document.getElementById('detective-feedback').innerText = '';
+    }
+
+    function checkDetective() {
+      const input = document.getElementById('detective-input').value.trim().toLowerCase();
+      const fb = document.getElementById('detective-feedback');
+
+      if (input === currentDetectiveEl.symbol.toLowerCase()) {
+        fb.style.color = '#22c55e';
+        fb.innerText = `ถูกต้อง! คือ ${currentDetectiveEl.name} (${currentDetectiveEl.symbol})`;
+        addHeart();
+        setTimeout(startDetectiveMode, 1500);
+      } else {
+        fb.style.color = '#ef4444';
+        fb.innerText = 'ยังไม่ใช่! (-1 หัวใจ)';
+        deductHeart();
+      }
+    }
+
+    // --- Leaderboard System (LocalStorage) ---
+    function saveRecord(name, timeSec) {
+      let records = JSON.parse(localStorage.getItem('periodic_leaderboard') || '[]');
+      const dateStr = new Date().toLocaleDateString('th-TH');
+      records.push({ name, timeSec, date: dateStr });
+      records.sort((a, b) => a.timeSec - b.timeSec); // เรียงจากเวลาน้อยไปมาก
+      records = records.slice(0, 10); // เก็บ Top 10
+      localStorage.setItem('periodic_leaderboard', JSON.stringify(records));
+    }
+
+    function renderLeaderboard() {
+      const tbody = document.getElementById('leaderboard-body');
+      tbody.innerHTML = '';
+      const records = JSON.parse(localStorage.getItem('periodic_leaderboard') || '[]');
+
+      if (records.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#94a3b8;">ยังไม่มีสถิติ</td></tr>';
+        return;
+      }
+
+      records.forEach((rec, idx) => {
+        const mins = Math.floor(rec.timeSec / 60).toString().padStart(2, '0');
+        const secs = (rec.timeSec % 60).toString().padStart(2, '0');
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${idx + 1}</td>
+          <td>${rec.name}</td>
+          <td>${mins}:${secs}</td>
+          <td>${rec.date}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function clearLeaderboard() {
+      if (confirm('คุณแน่ใจหรือไม่ว่าต้องการล้างสถิติทั้งหมด?')) {
+        localStorage.removeItem('periodic_leaderboard');
+        renderLeaderboard();
+      }
+    }
+
+    // Enter Key Listener for Input Fields
+    document.getElementById('electron-input').addEventListener('keypress', e => { if (e.key === 'Enter') checkElectron(); });
+    document.getElementById('detective-input').addEventListener('keypress', e => { if (e.key === 'Enter') checkDetective(); });
+    document.getElementById('player-name-input').addEventListener('keypress', e => { if (e.key === 'Enter') savePlayerName(); });
+
+    window.onload = checkPlayerName;
+  </script>
+</body>
+</html>
