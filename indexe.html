@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Periodic Table Game</title>
+  
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Mobile Drag and Drop Polyfill -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0/default.css">
+  <script src="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0/scroll-behaviour.min.js"></script>
+
+  <script>
+    MobileDragDrop.polyfill({
+      dragImageTranslateOverride: MobileDragDrop.scrollBehaviourDragImageTranslateOverride,
+      holdToDrag: 150
+    });
+
+    window.addEventListener('touchmove', function() {}, { passive: false });
+  </script>
+</head>
+<body>
+
+  <h1>Periodic Table</h1>
+  <p class="instruction">Tap and drag, or tap to select and tap zone to drop.</p>
+
+  <!-- Elements Pool -->
+  <div class="elements-container">
+    <div class="element-card" draggable="true" id="elem-H" data-symbol="H">H</div>
+    <div class="element-card" draggable="true" id="elem-He" data-symbol="He">He</div>
+    <div class="element-card" draggable="true" id="elem-Li" data-symbol="Li">Li</div>
+    <div class="element-card" draggable="true" id="elem-O" data-symbol="O">O</div>
+  </div>
+
+  <!-- Drop Zones -->
+  <div class="drop-container">
+    <div class="drop-zone" id="zone-1">Drop Here 1</div>
+    <div class="drop-zone" id="zone-2">Drop Here 2</div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
